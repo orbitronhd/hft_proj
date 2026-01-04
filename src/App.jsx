@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useState } from 'react';
-import { createTheme, ThemeProvider } from '@mui/material/styles';
+import { createTheme, ThemeProvider, styled } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import {
   Box,
@@ -16,6 +16,7 @@ import {
   Divider,
   Button,
   Tooltip,
+  InputBase
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -24,7 +25,11 @@ import {
   Login as LoginIcon,
   CheckCircle,
   Cancel,
-  Person
+  Person,
+  Search as SearchIcon,
+  AccessTime,
+  School,
+  Warning
 } from '@mui/icons-material';
 
 // --- 1. Theme Definition ---
@@ -37,9 +42,7 @@ const hackathonTheme = createTheme({
     },
     secondary: { main: '#ccc2dc' },
     background: {
-      // Main App Background (Deep Black from top of screenshot)
       default: '#0b0e11', 
-      // Sidebar Background (The "Bottom Bar" color from screenshot)
       paper: '#1e242b',   
     },
     text: {
@@ -48,6 +51,7 @@ const hackathonTheme = createTheme({
     },
     success: { main: '#4fd1c5' },
     error: { main: '#f2b8b5' },
+    warning: { main: '#edc889' }, // Added for Late Arrivals
   },
   shape: { borderRadius: 24 },
   typography: {
@@ -78,59 +82,85 @@ const hackathonTheme = createTheme({
   },
 });
 
-// --- 2. Mock Data ---
+// --- 2. Styled Components (Search Bar) ---
+const GradientSearchBox = styled(Box)(({ theme }) => ({
+  position: 'relative',
+  borderRadius: 50,
+  padding: '2px', // Thin border width
+  // Blue/Lavender Gradient Border matching the theme
+  background: 'linear-gradient(90deg, #381e72 0%, #d0bcff 50%, #381e72 100%)',
+  width: '100%',
+  maxWidth: '600px',
+  marginBottom: theme.spacing(4),
+}));
+
+const SearchInner = styled('div')(({ theme }) => ({
+  backgroundColor: theme.palette.background.default, // Inner matches app background
+  borderRadius: 48,
+  width: '100%',
+  display: 'flex',
+  alignItems: 'center',
+  padding: theme.spacing(0.5, 2),
+}));
+
+const StyledInputBase = styled(InputBase)(({ theme }) => ({
+  flexGrow: 1,
+  color: theme.palette.text.primary,
+  '& .MuiInputBase-input': {
+    padding: theme.spacing(1, 1),
+    width: '100%',
+    fontWeight: 500,
+    '&::placeholder': { color: theme.palette.text.secondary, opacity: 0.7 }
+  },
+}));
+
+// --- 3. Mock Data ---
+// "On Time" Students
 const PRESENT_STUDENTS = [
     { id: 1, name: "Justin Johnson", time: "08:55 AM" },
-    { id: 2, name: "Justin Smith", time: "09:00 AM" },
-    { id: 3, name: "Justin Davis", time: "09:02 AM" },
-    { id: 4, name: "Justin Prince", time: "09:05 AM" },
-    { id: 5, name: "Charlie Kirk", time: "09:10 AM" },
+    { id: 2, name: "Justin Smith", time: "08:58 AM" },
+    { id: 3, name: "Justin Davis", time: "08:59 AM" },
+];
+
+// "Late" Students (Arrived after 9:00 AM)
+const LATE_STUDENTS = [
+    { id: 4, name: "Charlie Kirk", time: "09:05 AM" },
+    { id: 5, name: "Justin Prince", time: "09:12 AM" },
 ];
 
 const ABSENT_STUDENTS = [
     { id: 6, name: "George Floyd" },
     { id: 7, name: "Your Mom" },
     { id: 8, name: "Your Sister's Friend" },
+    { id: 9, name: "That Guy" }, // Added to make list longer to test scaling
 ];
 
-// --- 3. Main Component ---
+// --- 4. Main Component ---
 function App() {
   const [currentView, setCurrentView] = useState('home'); 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-  // --- LAYOUT MATH (LOCKED) ---
-  // To prevent jumping, we match the math of the collapsed state exactly.
-  // Sidebar Width (Collapsed): 80px
-  // Sidebar Padding: 12px
-  // Available Content Width: 80 - 12 - 12 = 56px.
-  // We want the icon (24px) centered in that 56px space.
-  // (56 - 24) / 2 = 16px Padding.
-  // Result: We force 16px Left/Right padding on all buttons.
-  const sidebarPadding = 1.5; // 12px
-  const buttonPadding = 2;    // 16px (Calculated to center icon in 56px space)
-  const rowHeight = '56px';   // Fixed height
+  // --- Layout Constants ---
+  const sidebarPadding = 1.5; 
+  const buttonPadding = 2;    
+  const rowHeight = '56px';   
 
-  // Helper: Sidebar Button
   const NavButton = ({ icon, label, viewName, onClick }) => {
     const isActive = currentView === viewName && viewName !== 'login';
-    
     return (
       <Tooltip title={!isSidebarOpen ? label : ""} placement="right" arrow>
         <Button
             onClick={onClick ? onClick : () => setCurrentView(viewName)}
             startIcon={icon}
             sx={{
-                justifyContent: 'flex-start', // Always left-align
+                justifyContent: 'flex-start',
                 color: isActive ? 'primary.main' : 'text.secondary',
                 bgcolor: isActive ? '#333a4f' : 'transparent',
-                
-                // MATH LOCK:
-                px: buttonPadding, // 16px
+                px: buttonPadding,
                 height: rowHeight, 
                 mb: 1, 
                 width: '100%',
-                borderRadius: 28, // Pill shape
-                
+                borderRadius: 28,
                 transition: 'all 0.2s',
                 whiteSpace: 'nowrap', 
                 minWidth: 0, 
@@ -139,7 +169,6 @@ function App() {
                     color: 'primary.main',
                 },
                 '& .MuiButton-startIcon': {
-                    // Only add margin if expanded to push text over
                     marginRight: isSidebarOpen ? 2 : 0,
                     marginLeft: 0,
                     display: 'flex',
@@ -166,34 +195,25 @@ function App() {
       
       <Box sx={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden' }}>
 
-        {/* --- Collapsible Sidebar --- */}
+        {/* --- Sidebar --- */}
         <Box sx={{
-            width: isSidebarOpen ? 280 : 80, // 80px is standard M3 Rail width
+            width: isSidebarOpen ? 280 : 80,
             transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)', 
             flexShrink: 0,
             display: 'flex',
             flexDirection: 'column',
-            p: sidebarPadding, // 12px
-            bgcolor: 'background.paper', // Bottom Bar Color
+            p: sidebarPadding,
+            bgcolor: 'background.paper',
             overflowX: 'hidden'
         }}>
-            {/* Top: Hamburger */}
-            <Box sx={{ 
-                mb: 2, 
-                height: rowHeight, 
-                display: 'flex', 
-                alignItems: 'center', 
-                pl: 0 
-            }}>
+            <Box sx={{ mb: 2, height: rowHeight, display: 'flex', alignItems: 'center', pl: 0 }}>
                 <IconButton 
                     onClick={() => setIsSidebarOpen(!isSidebarOpen)}
                     color="inherit" 
-                    aria-label="toggle sidebar"
                     disableRipple
                     sx={{
                         borderRadius: 28,
-                        // MATH LOCK: Match Button padding exactly
-                        p: buttonPadding, // 16px
+                        p: buttonPadding,
                         width: 'auto',
                         color: 'text.secondary',
                         '&:hover': { backgroundColor: 'rgba(255,255,255,0.05)', color: 'text.primary' }
@@ -203,13 +223,11 @@ function App() {
                 </IconButton>
             </Box>
 
-            {/* Navigation Links */}
             <Box sx={{ flexGrow: 1 }}>
                 <NavButton icon={<HomeIcon />} label="Home" viewName="home" />
                 <NavButton icon={<AnalyticsIcon />} label="Analytics" viewName="analytics" />
             </Box>
 
-            {/* Bottom: Log In */}
             <Box>
                 <Divider sx={{ mb: 2, borderColor: 'rgba(255,255,255,0.05)' }} />
                 <NavButton 
@@ -221,88 +239,172 @@ function App() {
             </Box>
         </Box>
 
-        {/* --- Main Content Area --- */}
+        {/* --- Main Content --- */}
         <Box sx={{ flexGrow: 1, p: 4, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
             
-            <Typography variant="h4" sx={{ mb: 1, fontWeight: 700, color: 'text.primary' }}>
+            {/* Header */}
+            <Typography variant="h4" sx={{ mb: 3, fontWeight: 700, color: 'text.primary' }}>
               The "Never Bunk" Attendance System
             </Typography>
 
-            {/* --- View: HOME --- */}
+            {/* Gradient Search Bar */}
+            <GradientSearchBox>
+                <SearchInner>
+                    <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />
+                    <StyledInputBase
+                        placeholder="Search for a student..."
+                        inputProps={{ 'aria-label': 'search' }}
+                    />
+                </SearchInner>
+            </GradientSearchBox>
+
             {currentView === 'home' && (
-                <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3, height: '100%' }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                     
-                    {/* Widget 1: Present */}
-                    <Card sx={{ flex: 1, minWidth: 0 }}>
-                        <CardContent sx={{ p: 0, display: 'flex', flexDirection: 'column', height: '100%' }}>
-                            <Box sx={{ p: 3, pb: 2 }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                        <CheckCircle sx={{ color: 'success.main' }} />
-                                        <Typography variant="h6" color="text.primary">Present</Typography>
-                                    </Box>
-                                    <Typography variant="h5" color="success.main" sx={{ fontWeight: 700 }}>
-                                        {PRESENT_STUDENTS.length}
+                    {/* 1. Top Row: Small Info Widgets */}
+                    <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', sm: 'row' } }}>
+                        {/* Lecturer Box */}
+                        <Card sx={{ flex: 1 }}>
+                            <CardContent sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
+                                <Avatar sx={{ bgcolor: 'rgba(208, 188, 255, 0.1)', color: 'primary.main' }}>
+                                    <School />
+                                </Avatar>
+                                <Box>
+                                    <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700 }}>
+                                        Lecturer
+                                    </Typography>
+                                    <Typography variant="h6" color="text.primary">
+                                        Dr. Jonathan Jimson
                                     </Typography>
                                 </Box>
+                            </CardContent>
+                        </Card>
+
+                        {/* Last Scan Box */}
+                        <Card sx={{ flex: 1 }}>
+                            <CardContent sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
+                                <Avatar sx={{ bgcolor: 'rgba(208, 188, 255, 0.1)', color: 'primary.main' }}>
+                                    <AccessTime />
+                                </Avatar>
+                                <Box>
+                                    <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700 }}>
+                                        Last Scan
+                                    </Typography>
+                                    <Typography variant="h6" color="text.primary">
+                                        09:45 AM
+                                    </Typography>
+                                </Box>
+                            </CardContent>
+                        </Card>
+                    </Box>
+
+                    {/* 2. Middle Row: Present & Absent (Dynamic Height Scaling) */}
+                    <Box sx={{ 
+                        display: 'flex', 
+                        flexDirection: { xs: 'column', md: 'row' }, 
+                        gap: 3,
+                        alignItems: 'stretch' // This ensures both cards stretch to the height of the tallest one
+                    }}>
+                        {/* Present */}
+                        <Card sx={{ flex: 1 }}>
+                            <Box sx={{ p: 3, pb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                    <CheckCircle sx={{ color: 'success.main' }} />
+                                    <Typography variant="h6">Present</Typography>
+                                </Box>
+                                <Typography variant="h5" color="success.main" fontWeight={700}>
+                                    {PRESENT_STUDENTS.length}
+                                </Typography>
                             </Box>
-                            <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 2 }}>
-                                <List>
+                            <Box sx={{ flexGrow: 1, p: 2 }}>
+                                <List dense>
                                     {PRESENT_STUDENTS.map((student) => (
                                         <ListItem key={student.id} sx={{ bgcolor: 'rgba(255,255,255,0.02)' }}>
                                             <ListItemIcon>
-                                                <Avatar sx={{ bgcolor: 'rgba(79, 209, 197, 0.2)', color: 'success.main' }}>
+                                                <Avatar sx={{ width: 32, height: 32, bgcolor: 'rgba(79, 209, 197, 0.2)', color: 'success.main', fontSize: '0.875rem' }}>
                                                     {student.name[0]}
                                                 </Avatar>
                                             </ListItemIcon>
                                             <ListItemText 
                                                 primary={student.name} 
-                                                secondary={`Detected: ${student.time}`} 
-                                                primaryTypographyProps={{ fontWeight: 500, color: 'text.primary' }}
-                                                secondaryTypographyProps={{ color: 'text.secondary' }}
+                                                secondary={`Arrived: ${student.time}`}
+                                                primaryTypographyProps={{ fontWeight: 500 }}
                                             />
                                         </ListItem>
                                     ))}
                                 </List>
                             </Box>
-                        </CardContent>
-                    </Card>
+                        </Card>
 
-                    {/* Widget 2: Absent */}
-                    <Card sx={{ flex: 1, minWidth: 0 }}>
-                        <CardContent sx={{ p: 0, display: 'flex', flexDirection: 'column', height: '100%' }}>
-                             <Box sx={{ p: 3, pb: 2 }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                        <Cancel sx={{ color: 'error.main' }} />
-                                        <Typography variant="h6" color="text.primary">Absent</Typography>
-                                    </Box>
-                                    <Typography variant="h5" color="error.main" sx={{ fontWeight: 700 }}>
-                                        {ABSENT_STUDENTS.length}
-                                    </Typography>
+                        {/* Absent */}
+                        <Card sx={{ flex: 1 }}>
+                            <Box sx={{ p: 3, pb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                    <Cancel sx={{ color: 'error.main' }} />
+                                    <Typography variant="h6">Absent</Typography>
                                 </Box>
+                                <Typography variant="h5" color="error.main" fontWeight={700}>
+                                    {ABSENT_STUDENTS.length}
+                                </Typography>
                             </Box>
-                            <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 2 }}>
-                                <List>
+                            <Box sx={{ flexGrow: 1, p: 2 }}>
+                                <List dense>
                                     {ABSENT_STUDENTS.map((student) => (
                                         <ListItem key={student.id} sx={{ bgcolor: 'rgba(255,255,255,0.02)' }}>
                                             <ListItemIcon>
-                                                <Avatar sx={{ bgcolor: 'rgba(242, 184, 181, 0.2)', color: 'error.main' }}>
-                                                    <Person />
+                                                <Avatar sx={{ width: 32, height: 32, bgcolor: 'rgba(242, 184, 181, 0.2)', color: 'error.main', fontSize: '0.875rem' }}>
+                                                    <Person fontSize="small" />
                                                 </Avatar>
                                             </ListItemIcon>
                                             <ListItemText 
                                                 primary={student.name} 
                                                 secondary="Not detected"
-                                                primaryTypographyProps={{ fontWeight: 500, color: 'text.primary' }}
+                                                primaryTypographyProps={{ fontWeight: 500 }}
                                                 secondaryTypographyProps={{ color: 'error.main' }}
                                             />
                                         </ListItem>
                                     ))}
                                 </List>
                             </Box>
-                        </CardContent>
+                        </Card>
+                    </Box>
+
+                    {/* 3. Bottom Row: Late Arrivals */}
+                    <Card>
+                        <Box sx={{ p: 3, pb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                <Warning sx={{ color: 'warning.main' }} />
+                                <Typography variant="h6">Late Arrivals</Typography>
+                                <Typography variant="body2" color="text.secondary" sx={{ ml: 1 }}>
+                                    (After 9:00 AM)
+                                </Typography>
+                            </Box>
+                            <Typography variant="h5" color="warning.main" fontWeight={700}>
+                                {LATE_STUDENTS.length}
+                            </Typography>
+                        </Box>
+                        <Box sx={{ p: 2 }}>
+                            {/* Grid layout for list items to fill wide space */}
+                            <List sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 1 }}>
+                                {LATE_STUDENTS.map((student) => (
+                                    <ListItem key={student.id} sx={{ bgcolor: 'rgba(237, 200, 137, 0.05)', borderRadius: 4 }}>
+                                        <ListItemIcon>
+                                            <Avatar sx={{ width: 32, height: 32, bgcolor: 'rgba(237, 200, 137, 0.2)', color: 'warning.main', fontSize: '0.875rem' }}>
+                                                {student.name[0]}
+                                            </Avatar>
+                                        </ListItemIcon>
+                                        <ListItemText 
+                                            primary={student.name} 
+                                            secondary={`Arrived: ${student.time}`}
+                                            primaryTypographyProps={{ fontWeight: 500 }}
+                                            secondaryTypographyProps={{ color: 'warning.main' }}
+                                        />
+                                    </ListItem>
+                                ))}
+                            </List>
+                        </Box>
                     </Card>
+
                 </Box>
             )}
 
