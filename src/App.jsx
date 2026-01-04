@@ -16,7 +16,7 @@ import {
   Divider,
   ButtonBase, 
   InputBase,
-  // Removed Grid, using Box flex instead for stability
+  CircularProgress 
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -35,7 +35,6 @@ import {
   Send as SendIcon,
   ArrowBack
 } from '@mui/icons-material';
-// --- RECHARTS IMPORTS ---
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 
 // --- 1. Theme Definition ---
@@ -121,7 +120,7 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
   },
 }));
 
-// --- 3. Mock Data ---
+// --- 3. Mock Data (For Home View) ---
 const PRESENT_STUDENTS = [
     { id: 1, name: "Justin Johnson", time: "08:55 AM" },
     { id: 2, name: "Justin Smith", time: "08:58 AM" },
@@ -140,18 +139,11 @@ const ABSENT_STUDENTS = [
     { id: 9, name: "That Guy" },
 ];
 
-// --- 4. Analytics Data Mocks ---
 const CLASS_ANALYTICS = {
     total: 60,
     present: 45,
     absent: 10,
     late: 5,
-};
-
-const STUDENT_DATABASE = {
-    "justin": { name: "Justin Johnson", present: 180, absent: 2, late: 5 },
-    "charlie": { name: "Charlie Kirk", present: 150, absent: 20, late: 15 },
-    "george": { name: "George Floyd", present: 100, absent: 80, late: 7 },
 };
 
 const CHART_COLORS = {
@@ -160,7 +152,7 @@ const CHART_COLORS = {
     late: '#edc889',    
 };
 
-// --- 5. NavButton Component ---
+// --- 4. NavButton Component ---
 const NavButton = ({ activeIcon, inactiveIcon, label, viewName, isSidebarOpen, currentView, setCurrentView, onClick }) => {
     const isActive = currentView === viewName && viewName !== 'account';
     const [isHovered, setIsHovered] = useState(false);
@@ -198,7 +190,7 @@ const NavButton = ({ activeIcon, inactiveIcon, label, viewName, isSidebarOpen, c
     );
 };
 
-// --- 6. Main Component ---
+// --- 5. Main Component ---
 function App() {
   const [currentView, setCurrentView] = useState('home'); 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false); 
@@ -207,25 +199,59 @@ function App() {
   const [analyticsMode, setAnalyticsMode] = useState('class'); 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStudentData, setSelectedStudentData] = useState(null);
+  
+  // N8N Loading State
+  const [isLoading, setIsLoading] = useState(false);
 
   const collapsedWidth = 80; 
   const expandedWidth = 280; 
   const containerPadding = '12px';
 
-  const handleSearch = () => {
+  // --- N8N API Handler ---
+  const handleSearch = async () => {
       const query = searchQuery.toLowerCase().trim();
+      
+      // Default reset
       if (!query || query === 'class' || query === 'all') {
           setAnalyticsMode('class');
           setCurrentView('analytics'); 
           return;
       }
-      const foundStudentKey = Object.keys(STUDENT_DATABASE).find(key => query.includes(key));
-      if (foundStudentKey) {
-          setSelectedStudentData(STUDENT_DATABASE[foundStudentKey]);
-          setAnalyticsMode('student');
-          setCurrentView('analytics'); 
-      } else {
-          console.log("Student not found");
+
+      setIsLoading(true);
+
+      try {
+          // --- CONNECTING TO N8N ---
+          const response = await fetch('https://trialfortomorrow.app.n8n.cloud/webhook/student-report', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+              },
+              // We send the query as a JSON body
+              body: JSON.stringify({ query: query })
+          });
+
+          if (!response.ok) {
+              throw new Error('Network response was not ok');
+          }
+
+          const data = await response.json();
+          
+          // Assuming N8N returns data in format: { name: "...", present: X, absent: Y, late: Z }
+          // If your N8N returns an array, use data[0]
+          if (data) {
+              setSelectedStudentData(data);
+              setAnalyticsMode('student');
+              setCurrentView('analytics');
+          } else {
+              console.warn("Student not found or empty response");
+          }
+
+      } catch (error) {
+          console.error("Error fetching student report:", error);
+          // Optional: Show error snackbar here
+      } finally {
+          setIsLoading(false);
       }
   };
 
@@ -235,9 +261,9 @@ function App() {
         : CLASS_ANALYTICS;
 
       return [
-          { name: 'Present', value: data.present, color: CHART_COLORS.present },
-          { name: 'Absent', value: data.absent, color: CHART_COLORS.absent },
-          { name: 'Late', value: data.late, color: CHART_COLORS.late },
+          { name: 'Present', value: data.present || 0, color: CHART_COLORS.present },
+          { name: 'Absent', value: data.absent || 0, color: CHART_COLORS.absent },
+          { name: 'Late', value: data.late || 0, color: CHART_COLORS.late },
       ];
   };
 
@@ -280,19 +306,22 @@ function App() {
             
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', mt: 8, mb: 6 }}>
                 <Typography variant="h4" sx={{ mb: 3, fontWeight: 700, color: 'text.primary', textAlign: 'center' }}>
-                  The "Pupil" Attendance System
+                  Pupil
                 </Typography>
+                
+                {/* SEARCH BAR */}
                 <GradientSearchBox>
                     <SearchInner>
                         <StyledInputBase
-                            placeholder="Ask Pupil AI... (e.g., 'Justin', 'Charlie', 'Class')"
+                            placeholder="Ask Pupil AI... (e.g., 'Justin', 'Class')"
                             value={searchQuery}
+                            disabled={isLoading}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                             inputProps={{ 'aria-label': 'ask agent' }}
                         />
-                        <IconButton onClick={handleSearch} sx={{ color: 'primary.main', bgcolor: 'rgba(208, 188, 255, 0.1)', mr: 0.5, '&:hover': { bgcolor: 'rgba(208, 188, 255, 0.2)' } }}>
-                            <SendIcon />
+                        <IconButton onClick={handleSearch} disabled={isLoading} sx={{ color: 'primary.main', bgcolor: 'rgba(208, 188, 255, 0.1)', mr: 0.5, '&:hover': { bgcolor: 'rgba(208, 188, 255, 0.2)' } }}>
+                            {isLoading ? <CircularProgress size={24} color="inherit" /> : <SendIcon />}
                         </IconButton>
                     </SearchInner>
                 </GradientSearchBox>
@@ -351,7 +380,7 @@ function App() {
                 </Box>
             )}
 
-            {/* --- VIEW: ANALYTICS (FIXED FLEXBOX LAYOUT) --- */}
+            {/* --- VIEW: ANALYTICS --- */}
             {currentView === 'analytics' && (
                 <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 3 }}>
                     
@@ -362,17 +391,16 @@ function App() {
                             </IconButton>
                         )}
                         <Typography variant="h5" color="text.primary">
-                            {analyticsMode === 'class' ? "Class Overview: Software Engineering" : `Student Report: ${selectedStudentData?.name}`}
+                            {analyticsMode === 'class' ? "Class Overview: Software Engineering" : `Student Report: ${selectedStudentData?.name || 'Unknown'}`}
                         </Typography>
                     </Box>
 
-                    {/* NEW FLEX LAYOUT - REPLACED GRID */}
+                    {/* FIXED FLEXBOX LAYOUT */}
                     <Box sx={{ 
                         display: 'flex', 
                         flexDirection: { xs: 'column', md: 'row' }, 
                         gap: 3, 
                         width: '100%',
-                        // Use a fixed min-height to ensure charts have space
                         minHeight: '400px'
                     }}> 
                         
@@ -389,7 +417,7 @@ function App() {
                                         <Typography variant="h6" fontWeight={700}>
                                             {analyticsMode === 'class' 
                                                 ? CLASS_ANALYTICS.total 
-                                                : (selectedStudentData.present + selectedStudentData.absent + selectedStudentData.late)
+                                                : ((selectedStudentData?.present || 0) + (selectedStudentData?.absent || 0) + (selectedStudentData?.late || 0))
                                             }
                                         </Typography>
                                     </ListItem>
@@ -400,7 +428,7 @@ function App() {
                                             <ListItemText primary="Present" primaryTypographyProps={{ fontSize: '1.1rem' }} />
                                         </Box>
                                         <Typography variant="h6" color="success.main" fontWeight={700}>
-                                            {analyticsMode === 'class' ? CLASS_ANALYTICS.present : selectedStudentData.present}
+                                            {analyticsMode === 'class' ? CLASS_ANALYTICS.present : selectedStudentData?.present || 0}
                                         </Typography>
                                     </ListItem>
 
@@ -410,7 +438,7 @@ function App() {
                                             <ListItemText primary="Absent" primaryTypographyProps={{ fontSize: '1.1rem' }} />
                                         </Box>
                                         <Typography variant="h6" color="error.main" fontWeight={700}>
-                                            {analyticsMode === 'class' ? CLASS_ANALYTICS.absent : selectedStudentData.absent}
+                                            {analyticsMode === 'class' ? CLASS_ANALYTICS.absent : selectedStudentData?.absent || 0}
                                         </Typography>
                                     </ListItem>
 
@@ -420,7 +448,7 @@ function App() {
                                             <ListItemText primary="Late" primaryTypographyProps={{ fontSize: '1.1rem' }} />
                                         </Box>
                                         <Typography variant="h6" color="warning.main" fontWeight={700}>
-                                            {analyticsMode === 'class' ? CLASS_ANALYTICS.late : selectedStudentData.late}
+                                            {analyticsMode === 'class' ? CLASS_ANALYTICS.late : selectedStudentData?.late || 0}
                                         </Typography>
                                     </ListItem>
                                 </List>
