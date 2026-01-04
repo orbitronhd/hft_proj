@@ -80,17 +80,17 @@ const hackathonTheme = createTheme({
 
 // --- 2. Mock Data ---
 const PRESENT_STUDENTS = [
-    { id: 1, name: "Alice Johnson", time: "08:55 AM" },
-    { id: 2, name: "Bob Smith", time: "09:00 AM" },
-    { id: 3, name: "Charlie Davis", time: "09:02 AM" },
-    { id: 4, name: "Diana Prince", time: "09:05 AM" },
-    { id: 5, name: "Evan Wright", time: "09:10 AM" },
+    { id: 1, name: "Justin Johnson", time: "08:55 AM" },
+    { id: 2, name: "Justin Smith", time: "09:00 AM" },
+    { id: 3, name: "Justin Davis", time: "09:02 AM" },
+    { id: 4, name: "Justin Prince", time: "09:05 AM" },
+    { id: 5, name: "Charlie Kirk", time: "09:10 AM" },
 ];
 
 const ABSENT_STUDENTS = [
-    { id: 6, name: "Frank Castle" },
-    { id: 7, name: "Grace Hopper" },
-    { id: 8, name: "Hank Pym" },
+    { id: 6, name: "George Floyd" },
+    { id: 7, name: "Your Mom" },
+    { id: 8, name: "Your Sister's Friend" },
 ];
 
 // --- 3. Main Component ---
@@ -225,7 +225,7 @@ function App() {
         <Box sx={{ flexGrow: 1, p: 4, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
             
             <Typography variant="h4" sx={{ mb: 1, fontWeight: 700, color: 'text.primary' }}>
-                Classroom Monitor
+              The "Never Bunk" Attendance System
             </Typography>
 
             {/* --- View: HOME --- */}
