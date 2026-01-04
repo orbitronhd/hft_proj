@@ -16,7 +16,7 @@ import {
   Divider,
   ButtonBase, 
   InputBase,
-  Grid
+  // Removed Grid, using Box flex instead for stability
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -148,18 +148,16 @@ const CLASS_ANALYTICS = {
     late: 5,
 };
 
-// Simulation of a backend database
 const STUDENT_DATABASE = {
     "justin": { name: "Justin Johnson", present: 180, absent: 2, late: 5 },
     "charlie": { name: "Charlie Kirk", present: 150, absent: 20, late: 15 },
     "george": { name: "George Floyd", present: 100, absent: 80, late: 7 },
 };
 
-// Colors for Charts
 const CHART_COLORS = {
-    present: '#4fd1c5', // Success
-    absent: '#f2b8b5',  // Error
-    late: '#edc889',    // Warning
+    present: '#4fd1c5', 
+    absent: '#f2b8b5',  
+    late: '#edc889',    
 };
 
 // --- 5. NavButton Component ---
@@ -206,54 +204,40 @@ function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false); 
   
   // Analytics State
-  const [analyticsMode, setAnalyticsMode] = useState('class'); // 'class' or 'student'
+  const [analyticsMode, setAnalyticsMode] = useState('class'); 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStudentData, setSelectedStudentData] = useState(null);
 
-  // Constants
   const collapsedWidth = 80; 
   const expandedWidth = 280; 
   const containerPadding = '12px';
 
-  // --- Search Handler ---
   const handleSearch = () => {
       const query = searchQuery.toLowerCase().trim();
-      
-      // Reset if empty or specific keyword
       if (!query || query === 'class' || query === 'all') {
           setAnalyticsMode('class');
-          setCurrentView('analytics'); // Ensure we switch to analytics tab
+          setCurrentView('analytics'); 
           return;
       }
-
-      // Check Mock Database
-      // Simple partial match for demo purposes
       const foundStudentKey = Object.keys(STUDENT_DATABASE).find(key => query.includes(key));
-      
       if (foundStudentKey) {
           setSelectedStudentData(STUDENT_DATABASE[foundStudentKey]);
           setAnalyticsMode('student');
-          setCurrentView('analytics'); // Auto-switch view
+          setCurrentView('analytics'); 
       } else {
-          // Fallback: Just clear if not found (or show alert in real app)
           console.log("Student not found");
       }
   };
 
-  // --- Helper: Prepare Chart Data ---
   const getChartData = () => {
-      if (analyticsMode === 'student' && selectedStudentData) {
-          return [
-              { name: 'Present', value: selectedStudentData.present, color: CHART_COLORS.present },
-              { name: 'Absent', value: selectedStudentData.absent, color: CHART_COLORS.absent },
-              { name: 'Late', value: selectedStudentData.late, color: CHART_COLORS.late },
-          ];
-      }
-      // Default Class Data
+      const data = analyticsMode === 'student' && selectedStudentData 
+        ? selectedStudentData 
+        : CLASS_ANALYTICS;
+
       return [
-          { name: 'Present', value: CLASS_ANALYTICS.present, color: CHART_COLORS.present },
-          { name: 'Absent', value: CLASS_ANALYTICS.absent, color: CHART_COLORS.absent },
-          { name: 'Late', value: CLASS_ANALYTICS.late, color: CHART_COLORS.late },
+          { name: 'Present', value: data.present, color: CHART_COLORS.present },
+          { name: 'Absent', value: data.absent, color: CHART_COLORS.absent },
+          { name: 'Late', value: data.late, color: CHART_COLORS.late },
       ];
   };
 
@@ -317,7 +301,6 @@ function App() {
             {/* --- VIEW: HOME --- */}
             {currentView === 'home' && (
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                    {/* Top Row */}
                     <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', sm: 'row' } }}>
                         <Card sx={{ flex: 1 }}>
                             <CardContent sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -338,7 +321,6 @@ function App() {
                             </CardContent>
                         </Card>
                     </Box>
-                    {/* Middle Row */}
                     <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3, alignItems: 'stretch' }}>
                         <Card sx={{ flex: 1 }}>
                             <Box sx={{ p: 3, pb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -359,7 +341,6 @@ function App() {
                             </Box>
                         </Card>
                     </Box>
-                    {/* Bottom Row */}
                     <Card>
                         <Box sx={{ p: 3, pb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}><Warning sx={{ color: 'warning.main' }} /><Typography variant="h6">Late Arrivals</Typography><Typography variant="body2" color="text.secondary" sx={{ ml: 1 }}>(After 9:00 AM)</Typography></Box>
@@ -370,11 +351,10 @@ function App() {
                 </Box>
             )}
 
-            {/* --- VIEW: ANALYTICS --- */}
+            {/* --- VIEW: ANALYTICS (FIXED FLEXBOX LAYOUT) --- */}
             {currentView === 'analytics' && (
                 <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 3 }}>
                     
-                    {/* Header for Analytics Context */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
                         {analyticsMode === 'student' && (
                             <IconButton onClick={() => setAnalyticsMode('class')} sx={{ bgcolor: 'rgba(255,255,255,0.05)' }}>
@@ -386,93 +366,99 @@ function App() {
                         </Typography>
                     </Box>
 
-                    {/* Content Grid */}
-                    <Grid container spacing={3} sx={{ height: '500px' }}>
+                    {/* NEW FLEX LAYOUT - REPLACED GRID */}
+                    <Box sx={{ 
+                        display: 'flex', 
+                        flexDirection: { xs: 'column', md: 'row' }, 
+                        gap: 3, 
+                        width: '100%',
+                        // Use a fixed min-height to ensure charts have space
+                        minHeight: '400px'
+                    }}> 
                         
-                        {/* LEFT BOX: List Parameters */}
-                        <Grid item xs={12} md={5} sx={{ height: '100%' }}>
-                            <Card>
-                                <CardContent sx={{ p: 4, height: '100%', display: 'flex', flexDirection: 'column' }}>
-                                    <Typography variant="h6" color="text.secondary" sx={{ mb: 4, textTransform: 'uppercase', letterSpacing: 1 }}>
-                                        Statistics
-                                    </Typography>
-                                    
-                                    <List sx={{ width: '100%', bgcolor: 'transparent' }}>
-                                        {/* Total (Only relevant for Class view, or Total sessions for Student) */}
-                                        <ListItem sx={{ py: 2, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                                            <ListItemText primary="Total" primaryTypographyProps={{ fontSize: '1.1rem', fontWeight: 500 }} />
-                                            <Typography variant="h6" fontWeight={700}>
-                                                {analyticsMode === 'class' 
-                                                    ? CLASS_ANALYTICS.total 
-                                                    : (selectedStudentData.present + selectedStudentData.absent + selectedStudentData.late)
-                                                }
-                                            </Typography>
-                                        </ListItem>
+                        {/* LEFT BOX */}
+                        <Card sx={{ flex: 1, width: '100%' }}>
+                            <CardContent sx={{ p: 4 }}>
+                                <Typography variant="h6" color="text.secondary" sx={{ mb: 4, textTransform: 'uppercase', letterSpacing: 1 }}>
+                                    Statistics
+                                </Typography>
+                                
+                                <List sx={{ width: '100%', bgcolor: 'transparent' }}>
+                                    <ListItem sx={{ py: 2, borderBottom: '1px solid rgba(255,255,255,0.05)', justifyContent: 'space-between' }}>
+                                        <ListItemText primary="Total" primaryTypographyProps={{ fontSize: '1.1rem', fontWeight: 500 }} />
+                                        <Typography variant="h6" fontWeight={700}>
+                                            {analyticsMode === 'class' 
+                                                ? CLASS_ANALYTICS.total 
+                                                : (selectedStudentData.present + selectedStudentData.absent + selectedStudentData.late)
+                                            }
+                                        </Typography>
+                                    </ListItem>
 
-                                        {/* Present */}
-                                        <ListItem sx={{ py: 2, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                                            <ListItemIcon><CheckCircle sx={{ color: CHART_COLORS.present }} /></ListItemIcon>
+                                    <ListItem sx={{ py: 2, borderBottom: '1px solid rgba(255,255,255,0.05)', justifyContent: 'space-between' }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                            <ListItemIcon sx={{ minWidth: 40 }}><CheckCircle sx={{ color: CHART_COLORS.present }} /></ListItemIcon>
                                             <ListItemText primary="Present" primaryTypographyProps={{ fontSize: '1.1rem' }} />
-                                            <Typography variant="h6" color="success.main" fontWeight={700}>
-                                                {analyticsMode === 'class' ? CLASS_ANALYTICS.present : selectedStudentData.present}
-                                            </Typography>
-                                        </ListItem>
+                                        </Box>
+                                        <Typography variant="h6" color="success.main" fontWeight={700}>
+                                            {analyticsMode === 'class' ? CLASS_ANALYTICS.present : selectedStudentData.present}
+                                        </Typography>
+                                    </ListItem>
 
-                                        {/* Absent */}
-                                        <ListItem sx={{ py: 2, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                                            <ListItemIcon><Cancel sx={{ color: CHART_COLORS.absent }} /></ListItemIcon>
+                                    <ListItem sx={{ py: 2, borderBottom: '1px solid rgba(255,255,255,0.05)', justifyContent: 'space-between' }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                            <ListItemIcon sx={{ minWidth: 40 }}><Cancel sx={{ color: CHART_COLORS.absent }} /></ListItemIcon>
                                             <ListItemText primary="Absent" primaryTypographyProps={{ fontSize: '1.1rem' }} />
-                                            <Typography variant="h6" color="error.main" fontWeight={700}>
-                                                {analyticsMode === 'class' ? CLASS_ANALYTICS.absent : selectedStudentData.absent}
-                                            </Typography>
-                                        </ListItem>
+                                        </Box>
+                                        <Typography variant="h6" color="error.main" fontWeight={700}>
+                                            {analyticsMode === 'class' ? CLASS_ANALYTICS.absent : selectedStudentData.absent}
+                                        </Typography>
+                                    </ListItem>
 
-                                        {/* Late */}
-                                        <ListItem sx={{ py: 2 }}>
-                                            <ListItemIcon><Warning sx={{ color: CHART_COLORS.late }} /></ListItemIcon>
+                                    <ListItem sx={{ py: 2, justifyContent: 'space-between' }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                            <ListItemIcon sx={{ minWidth: 40 }}><Warning sx={{ color: CHART_COLORS.late }} /></ListItemIcon>
                                             <ListItemText primary="Late" primaryTypographyProps={{ fontSize: '1.1rem' }} />
-                                            <Typography variant="h6" color="warning.main" fontWeight={700}>
-                                                {analyticsMode === 'class' ? CLASS_ANALYTICS.late : selectedStudentData.late}
-                                            </Typography>
-                                        </ListItem>
-                                    </List>
-                                </CardContent>
-                            </Card>
-                        </Grid>
+                                        </Box>
+                                        <Typography variant="h6" color="warning.main" fontWeight={700}>
+                                            {analyticsMode === 'class' ? CLASS_ANALYTICS.late : selectedStudentData.late}
+                                        </Typography>
+                                    </ListItem>
+                                </List>
+                            </CardContent>
+                        </Card>
 
-                        {/* RIGHT BOX: Pie Chart */}
-                        <Grid item xs={12} md={7} sx={{ height: '100%' }}>
-                            <Card>
-                                <CardContent sx={{ p: 4, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                                    <Box sx={{ width: '100%', height: '100%', minHeight: '300px' }}>
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <PieChart>
-                                                <Pie
-                                                    data={chartData}
-                                                    cx="50%"
-                                                    cy="50%"
-                                                    innerRadius={80} // Donut style
-                                                    outerRadius={120}
-                                                    paddingAngle={5}
-                                                    dataKey="value"
-                                                    stroke="none"
-                                                >
-                                                    {chartData.map((entry, index) => (
-                                                        <Cell key={`cell-${index}`} fill={entry.color} />
-                                                    ))}
-                                                </Pie>
-                                                <RechartsTooltip 
-                                                    contentStyle={{ backgroundColor: '#1e242b', borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }}
-                                                    itemStyle={{ color: '#e6e1e5' }}
-                                                />
-                                                <Legend verticalAlign="bottom" height={36} iconType="circle" />
-                                            </PieChart>
-                                        </ResponsiveContainer>
-                                    </Box>
-                                </CardContent>
-                            </Card>
-                        </Grid>
-                    </Grid>
+                        {/* RIGHT BOX */}
+                        <Card sx={{ flex: 1, width: '100%', minHeight: '400px' }}>
+                            <CardContent sx={{ p: 4, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                                {/* HARD CODED HEIGHT - ESSENTIAL FOR RECHARTS IN FLEXBOX */}
+                                <Box sx={{ width: '100%', height: 300 }}> 
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart>
+                                            <Pie
+                                                data={chartData}
+                                                cx="50%"
+                                                cy="50%"
+                                                innerRadius={80} 
+                                                outerRadius={110}
+                                                paddingAngle={5}
+                                                dataKey="value"
+                                                stroke="none"
+                                            >
+                                                {chartData.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={entry.color} />
+                                                ))}
+                                            </Pie>
+                                            <RechartsTooltip 
+                                                contentStyle={{ backgroundColor: '#1e242b', borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }}
+                                                itemStyle={{ color: '#e6e1e5' }}
+                                            />
+                                            <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </Box>
+                            </CardContent>
+                        </Card>
+                    </Box>
                 </Box>
             )}
         </Box>
