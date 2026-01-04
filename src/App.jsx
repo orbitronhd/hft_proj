@@ -16,72 +16,63 @@ import {
   Divider,
   Button,
   Tooltip,
-  Fade
 } from '@mui/material';
 import {
   Menu as MenuIcon,
   Home as HomeIcon,
   BarChart as AnalyticsIcon,
-  Login as LoginIcon, // Changed icon for Log In
+  Login as LoginIcon,
   CheckCircle,
   Cancel,
   Person
 } from '@mui/icons-material';
 
-// --- 1. Theme Definition (Blue Palette) ---
+// --- 1. Theme Definition ---
 const hackathonTheme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
-      main: '#64b5f6',
-      contrastText: '#0a1929',
+      main: '#d0bcff',
+      contrastText: '#381e72',
     },
-    secondary: {
-      main: '#1976d2',
-    },
+    secondary: { main: '#ccc2dc' },
     background: {
-      default: '#0a1929',
-      paper: '#132f4c',
+      // Main App Background (Deep Black from top of screenshot)
+      default: '#0b0e11', 
+      // Sidebar Background (The "Bottom Bar" color from screenshot)
+      paper: '#1e242b',   
     },
     text: {
-      primary: '#e3f2fd',
-      secondary: '#90caf9',
+      primary: '#e6e1e5',
+      secondary: '#c4c7c5',
     },
-    success: {
-      main: '#66bb6a',
-    },
-    error: {
-      main: '#f44336',
-    },
+    success: { main: '#4fd1c5' },
+    error: { main: '#f2b8b5' },
   },
-  shape: {
-    borderRadius: 24,
-  },
+  shape: { borderRadius: 24 },
   typography: {
     fontFamily: '"DM Sans", "Roboto", sans-serif',
-    h5: { fontWeight: 700 },
+    h5: { fontWeight: 700, color: '#e6e1e5' },
     h6: { fontWeight: 600 },
-    button: { textTransform: 'none', fontWeight: 500 }
+    button: { textTransform: 'none', fontWeight: 600 }
   },
   components: {
     MuiCard: {
       styleOverrides: {
         root: ({ theme }) => ({
           backgroundColor: theme.palette.background.paper,
-          boxShadow: '0px 4px 24px rgba(0,0,0,0.4)',
+          backgroundImage: 'none',
+          boxShadow: 'none',
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
+          border: '1px solid rgba(255, 255, 255, 0.05)',
         }),
       },
     },
     MuiListItem: {
         styleOverrides: {
-            root: {
-                borderRadius: 12,
-                marginBottom: 8,
-                '&:hover': { backgroundColor: 'rgba(100, 181, 246, 0.08)' }
-            }
+            root: { borderRadius: 16, marginBottom: 8 }
         }
     }
   },
@@ -105,9 +96,21 @@ const ABSENT_STUDENTS = [
 // --- 3. Main Component ---
 function App() {
   const [currentView, setCurrentView] = useState('home'); 
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true); // State for expansion
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-  // Helper: Sidebar Button Component
+  // --- LAYOUT MATH (LOCKED) ---
+  // To prevent jumping, we match the math of the collapsed state exactly.
+  // Sidebar Width (Collapsed): 80px
+  // Sidebar Padding: 12px
+  // Available Content Width: 80 - 12 - 12 = 56px.
+  // We want the icon (24px) centered in that 56px space.
+  // (56 - 24) / 2 = 16px Padding.
+  // Result: We force 16px Left/Right padding on all buttons.
+  const sidebarPadding = 1.5; // 12px
+  const buttonPadding = 2;    // 16px (Calculated to center icon in 56px space)
+  const rowHeight = '56px';   // Fixed height
+
+  // Helper: Sidebar Button
   const NavButton = ({ icon, label, viewName, onClick }) => {
     const isActive = currentView === viewName && viewName !== 'login';
     
@@ -117,34 +120,40 @@ function App() {
             onClick={onClick ? onClick : () => setCurrentView(viewName)}
             startIcon={icon}
             sx={{
-                justifyContent: isSidebarOpen ? 'flex-start' : 'center',
-                // Uniform color for all buttons (text.primary)
-                color: 'text.primary', 
-                // Background shows active state
-                bgcolor: isActive ? 'rgba(100, 181, 246, 0.15)' : 'transparent',
-                px: isSidebarOpen ? 3 : 1, // Adjust padding based on width
-                py: 1.5,
-                mb: 1,
-                minWidth: 0, // Allows button to shrink properly
+                justifyContent: 'flex-start', // Always left-align
+                color: isActive ? 'primary.main' : 'text.secondary',
+                bgcolor: isActive ? '#333a4f' : 'transparent',
+                
+                // MATH LOCK:
+                px: buttonPadding, // 16px
+                height: rowHeight, 
+                mb: 1, 
                 width: '100%',
-                borderRadius: 4,
+                borderRadius: 28, // Pill shape
+                
                 transition: 'all 0.2s',
+                whiteSpace: 'nowrap', 
+                minWidth: 0, 
                 '&:hover': {
-                    bgcolor: 'rgba(100, 181, 246, 0.25)',
+                    bgcolor: isActive ? '#3e475e' : 'rgba(255, 255, 255, 0.05)',
+                    color: 'primary.main',
                 },
                 '& .MuiButton-startIcon': {
-                    marginRight: isSidebarOpen ? 2 : 0, // Remove margin when collapsed
+                    // Only add margin if expanded to push text over
+                    marginRight: isSidebarOpen ? 2 : 0,
                     marginLeft: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    minWidth: '24px',
+                    color: isActive ? 'primary.main' : 'inherit' 
                 }
             }}
         >
-            {/* Fade text in/out smoothly */}
             {isSidebarOpen && (
-                <Fade in={isSidebarOpen} timeout={200}>
-                    <Box component="span" sx={{ whiteSpace: 'nowrap' }}>
-                        {label}
-                    </Box>
-                </Fade>
+                <Box component="span" sx={{ opacity: 1, transition: 'opacity 0.2s' }}>
+                    {label}
+                </Box>
             )}
         </Button>
       </Tooltip>
@@ -159,29 +168,38 @@ function App() {
 
         {/* --- Collapsible Sidebar --- */}
         <Box sx={{
-            width: isSidebarOpen ? 280 : 80, // Dynamic Width
-            transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)', // Smooth "Gemini-like" easing
+            width: isSidebarOpen ? 280 : 80, // 80px is standard M3 Rail width
+            transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)', 
             flexShrink: 0,
             display: 'flex',
             flexDirection: 'column',
-            borderRight: '1px solid rgba(255,255,255,0.08)',
-            p: 2, // Reduced padding to fit collapsed state
-            bgcolor: 'background.paper',
-            overflowX: 'hidden' // Hide content while collapsing
+            p: sidebarPadding, // 12px
+            bgcolor: 'background.paper', // Bottom Bar Color
+            overflowX: 'hidden'
         }}>
             {/* Top: Hamburger */}
             <Box sx={{ 
-                mb: 4, 
+                mb: 2, 
+                height: rowHeight, 
                 display: 'flex', 
-                justifyContent: isSidebarOpen ? 'flex-start' : 'center',
-                pl: isSidebarOpen ? 1 : 0 
+                alignItems: 'center', 
+                pl: 0 
             }}>
                 <IconButton 
                     onClick={() => setIsSidebarOpen(!isSidebarOpen)}
                     color="inherit" 
                     aria-label="toggle sidebar"
+                    disableRipple
+                    sx={{
+                        borderRadius: 28,
+                        // MATH LOCK: Match Button padding exactly
+                        p: buttonPadding, // 16px
+                        width: 'auto',
+                        color: 'text.secondary',
+                        '&:hover': { backgroundColor: 'rgba(255,255,255,0.05)', color: 'text.primary' }
+                    }}
                 >
-                    <MenuIcon sx={{ fontSize: 28 }} />
+                    <MenuIcon sx={{ fontSize: 24 }} /> 
                 </IconButton>
             </Box>
 
@@ -193,7 +211,7 @@ function App() {
 
             {/* Bottom: Log In */}
             <Box>
-                <Divider sx={{ mb: 2, borderColor: 'rgba(255,255,255,0.1)' }} />
+                <Divider sx={{ mb: 2, borderColor: 'rgba(255,255,255,0.05)' }} />
                 <NavButton 
                     icon={<LoginIcon />} 
                     label="Log in" 
@@ -206,28 +224,24 @@ function App() {
         {/* --- Main Content Area --- */}
         <Box sx={{ flexGrow: 1, p: 4, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
             
-            <Typography variant="h4" sx={{ mb: 4, fontWeight: 700, color: 'text.primary' }}>
-                {currentView === 'home' ? 'Classroom Monitor' : 'Attendance Analytics'}
+            <Typography variant="h4" sx={{ mb: 1, fontWeight: 700, color: 'text.primary' }}>
+                Classroom Monitor
             </Typography>
 
             {/* --- View: HOME --- */}
             {currentView === 'home' && (
-                <Box sx={{ 
-                    display: 'flex', 
-                    flexDirection: { xs: 'column', md: 'row' }, 
-                    gap: 4, 
-                    height: '100%' 
-                }}>
+                <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3, height: '100%' }}>
+                    
                     {/* Widget 1: Present */}
                     <Card sx={{ flex: 1, minWidth: 0 }}>
                         <CardContent sx={{ p: 0, display: 'flex', flexDirection: 'column', height: '100%' }}>
-                            <Box sx={{ p: 3, pb: 2, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                            <Box sx={{ p: 3, pb: 2 }}>
                                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                                         <CheckCircle sx={{ color: 'success.main' }} />
-                                        <Typography variant="h6">Present</Typography>
+                                        <Typography variant="h6" color="text.primary">Present</Typography>
                                     </Box>
-                                    <Typography variant="h6" color="success.main">
+                                    <Typography variant="h5" color="success.main" sx={{ fontWeight: 700 }}>
                                         {PRESENT_STUDENTS.length}
                                     </Typography>
                                 </Box>
@@ -235,16 +249,17 @@ function App() {
                             <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 2 }}>
                                 <List>
                                     {PRESENT_STUDENTS.map((student) => (
-                                        <ListItem key={student.id}>
+                                        <ListItem key={student.id} sx={{ bgcolor: 'rgba(255,255,255,0.02)' }}>
                                             <ListItemIcon>
-                                                <Avatar sx={{ bgcolor: 'rgba(102, 187, 106, 0.2)', color: 'success.main' }}>
+                                                <Avatar sx={{ bgcolor: 'rgba(79, 209, 197, 0.2)', color: 'success.main' }}>
                                                     {student.name[0]}
                                                 </Avatar>
                                             </ListItemIcon>
                                             <ListItemText 
                                                 primary={student.name} 
-                                                secondary={`Detected: ${student.time}`}
-                                                primaryTypographyProps={{ fontWeight: 500 }}
+                                                secondary={`Detected: ${student.time}`} 
+                                                primaryTypographyProps={{ fontWeight: 500, color: 'text.primary' }}
+                                                secondaryTypographyProps={{ color: 'text.secondary' }}
                                             />
                                         </ListItem>
                                     ))}
@@ -256,13 +271,13 @@ function App() {
                     {/* Widget 2: Absent */}
                     <Card sx={{ flex: 1, minWidth: 0 }}>
                         <CardContent sx={{ p: 0, display: 'flex', flexDirection: 'column', height: '100%' }}>
-                             <Box sx={{ p: 3, pb: 2, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                             <Box sx={{ p: 3, pb: 2 }}>
                                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                                         <Cancel sx={{ color: 'error.main' }} />
-                                        <Typography variant="h6">Absent</Typography>
+                                        <Typography variant="h6" color="text.primary">Absent</Typography>
                                     </Box>
-                                    <Typography variant="h6" color="error.main">
+                                    <Typography variant="h5" color="error.main" sx={{ fontWeight: 700 }}>
                                         {ABSENT_STUDENTS.length}
                                     </Typography>
                                 </Box>
@@ -270,16 +285,16 @@ function App() {
                             <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 2 }}>
                                 <List>
                                     {ABSENT_STUDENTS.map((student) => (
-                                        <ListItem key={student.id}>
+                                        <ListItem key={student.id} sx={{ bgcolor: 'rgba(255,255,255,0.02)' }}>
                                             <ListItemIcon>
-                                                <Avatar sx={{ bgcolor: 'rgba(244, 67, 54, 0.2)', color: 'error.main' }}>
+                                                <Avatar sx={{ bgcolor: 'rgba(242, 184, 181, 0.2)', color: 'error.main' }}>
                                                     <Person />
                                                 </Avatar>
                                             </ListItemIcon>
                                             <ListItemText 
                                                 primary={student.name} 
                                                 secondary="Not detected"
-                                                primaryTypographyProps={{ fontWeight: 500 }}
+                                                primaryTypographyProps={{ fontWeight: 500, color: 'text.primary' }}
                                                 secondaryTypographyProps={{ color: 'error.main' }}
                                             />
                                         </ListItem>
@@ -291,15 +306,11 @@ function App() {
                 </Box>
             )}
 
-            {/* --- View: ANALYTICS --- */}
             {currentView === 'analytics' && (
                 <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.5 }}>
-                    <Typography variant="h5" color="text.secondary">
-                        Analytics View
-                    </Typography>
+                    <Typography variant="h5" color="text.secondary">Analytics View (Under Construction)</Typography>
                 </Box>
             )}
-
         </Box>
       </Box>
     </ThemeProvider>
